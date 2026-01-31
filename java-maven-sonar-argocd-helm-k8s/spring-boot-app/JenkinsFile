@@ -1,5 +1,5 @@
 pipeline {
-    agent any  // Use a normal Jenkins agent to clone the repo first
+    agent any // Use a Jenkins node with Git installed
 
     stages {
         stage('Checkout') {
