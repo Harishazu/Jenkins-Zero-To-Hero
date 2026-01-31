@@ -1,11 +1,16 @@
 pipeline {
-    agent any
+    agent any  // Use a normal Jenkins agent to clone the repo first
 
     stages {
         stage('Checkout') {
             steps {
-                // Let Jenkins handle checkout using credentials
-                checkout scm
+                checkout([$class: 'GitSCM',
+                          branches: [[name: '*/main']],
+                          userRemoteConfigs: [[
+                              url: 'https://github.com/Harishazu/Jenkins-Zero-To-Hero.git',
+                              credentialsId: 'a3077848-5a7f-4e36-ae92-4f28fbbdab9b'
+                          ]]
+                ])
             }
         }
 
@@ -41,7 +46,7 @@ pipeline {
         stage('Build and Push Docker Image') {
             agent {
                 docker {
-                    image 'docker:24.0-dind' // Docker-in-Docker image
+                    image 'docker:24.0-dind'
                     args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
                 }
             }
