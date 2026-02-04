@@ -20,16 +20,23 @@ pipeline {
         sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
       }
     }
-    stage('Static Code Analysis') {
-      environment {
-        SONAR_URL = "http://13.60.69.153:9000/"
-      }
-      steps {
-        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
+stage('Static Code Analysis') {
+    agent {
+        docker {
+            // This image provides Maven 3.9+ and JDK 17
+            image 'maven:3.9.6-eclipse-temurin-17' 
         }
-      }
     }
+    environment {
+        SONAR_URL = "http://13.60.69.153:9000/"
+    }
+    steps {
+        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+            // Note: Use double quotes for the sh command to allow Jenkins variable expansion
+            sh "cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.host.url=${SONAR_URL}"
+        }
+    }
+}
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "harishhp/ultimate-cicd:${BUILD_NUMBER}"
