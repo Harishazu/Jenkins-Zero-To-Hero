@@ -9,8 +9,8 @@ pipeline {
   stages {
     stage('Checkout') {
       steps {
-        sh 'echo passed'
-        //git branch: 'main', url: 'https://github.com/Harishazu/Jenkins-Zero-To-Hero.git'
+        // This clones the repo that triggered the build
+        checkout scm
       }
     }
     stage('Build and Test') {
