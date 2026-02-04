@@ -53,9 +53,6 @@ stage('Update Deployment File') {
         GIT_USER_NAME = "Harishazu"
     }
     steps {
-        checkout([$class: 'GitSCM',
-                  branches: [[name: 'main']],
-                  userRemoteConfigs: [[url: 'https://github.com/Harishazu/Jenkins-Zero-To-Hero.git']]])
         withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
             sh '''
                 git config user.email "kalasaravanan07@gmail.com"
@@ -68,4 +65,5 @@ stage('Update Deployment File') {
             '''
         }
     }
+}
 }
