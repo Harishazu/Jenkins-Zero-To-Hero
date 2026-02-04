@@ -1,28 +1,34 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.9.6-eclipse-temurin-17'
-            args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
-        }
-    }
+    agent none // Disable global agent to allow stage-specific agents
 
     stages {
-
         stage('Checkout') {
+            agent any
             steps {
-                // This clones the repo that triggered the build
                 checkout scm
             }
         }
 
         stage('Build and Test') {
+            agent {
+                docker {
+                    image 'maven:3.9.6-eclipse-temurin-17'
+                    // Ensure the container runs as root to use the mounted socket
+                    args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             steps {
-                sh 'ls -ltr'
                 sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
             }
         }
 
         stage('Static Code Analysis') {
+            agent {
+                docker {
+                    image 'maven:3.9.6-eclipse-temurin-17'
+                    args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             environment {
                 SONAR_URL = "http://51.21.131.252:9000/"
             }
@@ -34,43 +40,50 @@ pipeline {
         }
 
         stage('Build and Push Docker Image') {
+            agent any // Run on host to access the Docker daemon directly
             environment {
                 DOCKER_IMAGE = "harishazu/jenkins:${BUILD_NUMBER}"
-                REGISTRY_CREDENTIALS = credentials('docker-cred')
             }
             steps {
                 script {
+                    // Build using the shell
                     sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
-                    def dockerImage = docker.image("${DOCKER_IMAGE}")
+                    
+                    // Push using the Docker pipeline utility
                     docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
-                        dockerImage.push()
+                        docker.image("${DOCKER_IMAGE}").push()
                     }
                 }
             }
         }
 
-        // Run Git deployment updates on the Jenkins node, not inside Docker
         stage('Update Deployment File') {
-            agent any  // ensures it runs on Jenkins node
+            agent any // This runs on the Jenkins host, not inside a container
             environment {
                 GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
                 GIT_USER_NAME = "Harishazu"
             }
             steps {
-                checkout scm
+                // Important: Re-checkout so the host has the .git directory
+                checkout scm 
+                
                 withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                     sh '''
                         git config user.email "kalasaravanan07@gmail.com"
                         git config user.name "Harish Saravanan"
-                        BUILD_NUMBER=${BUILD_NUMBER}
+                        
+                        # Update the deployment manifest
                         sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+                        
+                        # Git operations
                         git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
                         git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+                        
+                        # Push using the token for authentication
+                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
                     '''
                 }
             }
         }
-
-    } // closes stages
-} // closes pipeline
+    }
+}
