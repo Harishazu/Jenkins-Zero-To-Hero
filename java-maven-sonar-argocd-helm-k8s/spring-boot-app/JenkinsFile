@@ -30,7 +30,7 @@ pipeline {
                 }
             }
             environment {
-                SONAR_URL = "http://51.21.131.252:9000/"
+                SONAR_URL = "http://54.92.140.77:9000/"
             }
             steps {
                 withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
