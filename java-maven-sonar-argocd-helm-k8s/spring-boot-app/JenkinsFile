@@ -68,20 +68,24 @@ pipeline {
                 checkout scm 
                 
                 withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-                    sh '''
-                        git config user.email "kalasaravanan07@gmail.com"
-                        git config user.name "Harish Saravanan"
-                        
-                        # Update the deployment manifest
-                        sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-                        
-                        # Git operations
-                        git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-                        git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                        
-                        # Push using the token for authentication
-                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
-                    '''
+                        sh '''
+                            git config user.email "kalasaravanan07@gmail.com"
+                            git config user.name "Harish Saravanan"
+                            
+                            git checkout main
+                            
+                            # Update file
+                            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+                            
+                            # Add changes
+                            git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+                            
+                            # Commit only if there are changes
+                            git diff --cached --quiet || git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+                            
+                            # Push
+                            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
+                        '''
                 }
             }
         }
