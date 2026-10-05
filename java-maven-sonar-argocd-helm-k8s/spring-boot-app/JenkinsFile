@@ -89,9 +89,10 @@ pipeline {
                 checkout scm
 
                 withCredentials([
-                    string(
+                    usernameandpassword(
                         credentialsId: 'github',
-                        variable: 'GITHUB_TOKEN'
+                        usernameVariable: 'GITHUB_USERNAME', 
+                        passwordVariable: 'GITHUB_TOKEN'
                     )
                 ]) {
                     sh '''
