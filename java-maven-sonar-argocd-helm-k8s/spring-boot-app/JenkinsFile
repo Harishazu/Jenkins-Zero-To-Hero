@@ -1,11 +1,8 @@
 pipeline {
     agent none
-
     stages {
-
-        stage('Checkout') {
+      stage('Checkout') {
             agent any
-
             steps {
                 checkout scm
             }
@@ -75,10 +72,7 @@ pipeline {
                 }
 
                 script {
-                    docker.withRegistry(
-                        'https://index.docker.io/v1/',
-                        'docker-cred'
-                    ) {
+                    docker.withRegistry('https://index.docker.io/v1/', 'docker-cred') {
                         docker.image("${DOCKER_IMAGE}").push()
                     }
                 }
@@ -127,4 +121,3 @@ pipeline {
         }
     }
 }
-```
